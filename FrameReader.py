@@ -6,8 +6,8 @@ class FrameReader(object):
         print("Read file: {0}".format(filename))
         self.all_lines = file_.readlines()
         file_.close()
-        self.total_frames = getNumFrames(self)
-        self.total_atoms = getNumAtoms(self)
+        self.total_frames = self.getNumFrames()
+        self.total_atoms = self.getNumAtoms()
         # self.atom_lines = extractAtomLines_all(self)
 
     def getNumFrames(self):
@@ -15,7 +15,7 @@ class FrameReader(object):
         Get the number of frames present in the open trajectory
         :return: Number of frames in trajectory
         """
-        timestep_values = readTimesteps(self.all_lines)    # Takes the values of all timesteps
+        timestep_values = self.readTimesteps()    # Takes the values of all timesteps
         return len(timestep_values)
 
     def getNumAtoms(self):
@@ -156,7 +156,7 @@ class FrameReader(object):
                 continue
         count = count_line
         frame_lines = []
-        for line in range(count_line, len(self.all_lines):
+        for line in range(count_line, len(self.all_lines)):
             if line[:11] == "ITEM: ATOMS":
                 for x in range(self.total_atoms):                        # Upon reaching the atom data section, the next (total_atoms)
                     frame_lines.append(self.all_lines[count + x + 1])     # lines are extracted and stored into a list

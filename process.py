@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-
 import sys
 import numpy as np
 import time
 import matplotlib.pyplot as plt
 from math import sqrt
 from optparse import OptionParser
+
+from FrameReader import FrameReader
 
 class Atom:
     def __init__(self, atom_type=None, coords=None, dipole=None):
@@ -23,7 +24,9 @@ class Atom:
             self.dipole = dipole
 
     def __repr__(self):
-        return "<Atom {0} @ {1}, {2}, {2} with dipole {4}, {5}, {6}>".format(self.atom_type, *self.coords, *self.dipole)
+        return "<Atom {0} @ {1}, {2}, {2} with dipole {4}, {5}, {6}>"\
+               .format(self.atom_type, self.coords[0], self.coords[1], self.coords[2],
+                       self.dipole[0], self.dipole[1], self.dipole[2])
 
 class Frame:
     def __init__(self, natoms):
@@ -88,7 +91,7 @@ class Frame:
         for i in xrange(start, end):
             print(self.atoms[i])
 
-def calc_measures(frames, req="length", request=bond_quads, export=True):
+def calc_measures(frames, req, request, export=True):
     print("Calculating bond "+req+"s")
     if export:
         f = open("bond_"+req+"s.csv", "a")
@@ -169,14 +172,22 @@ def analyse(filename, natoms):
             sys.exit(1)
     nframes = reader.total_frames
 
-    angle1 = np.zeros(nframes, natoms)
-    angle2 = np.zeros(nframes, natoms)
+    angle1 = np.zeros((nframes, natoms))
+    angle2 = np.zeros((nframes, natoms))
 
     frame = Frame(natoms)
     for i in xrange(nframes):
         # Read in frame from trajectory and process
         reader.getFrame(frame)
+        angle1_tmp = calcAngles1(frame)
+        angle2_tmp = calcAngles2(frame)
 
+        for j in xrange(3):
+            angle1[i, j] = angle1_tmp[j]
+            angle2[i, j] = angle2_tmp[j]
+
+    analyseAngles(angle1)
+    analyseAngles(angle2)
 
     t_end = time.clock()
     print("\rCalculated {0} frames in {1}s\n".format(len(cg_frames), (t_end - t_start)) + "-"*20)
@@ -195,8 +206,7 @@ if __name__ == "__main__":
     #                   action="store_true", dest="verbose", default=False,
     #                   help="Make more verbose")
     (options, args) = parser.parse_args()
-    verbose = options.verbose
     if not options.lammpstrj:
         print("Must provide LAMMPS trajectory to run")
         sys.exit(1)
-    analyse(options.lammmpstrj, options.natoms)
+    analyse(options.lammpstrj, options.natoms)
