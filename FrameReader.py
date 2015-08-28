@@ -49,14 +49,14 @@ class FrameReader(object):
                 continue
         return timesteps    # Length of this list will be equal to the number of frames
 
-    def readAtomCoords(lammpstrj, raw_atom_lines):
+    def readAtomCoords(self, frame_lines, frame):
         """ Function to obtain the x,y,z coordinates for
         a particular atom at each frame in the trajectory.
         lammpstrj - raw, unedited lammps trajectory.
         raw_atom_lines - raw, unedited lines, specific to
           one atom. """
         # Function works in the same way as readAtomDipoles(), but written as separate functions for clarity
-        for line in lammpstrj:
+        for line in frame_lines:
             if line[:11] == "ITEM: ATOMS":
                 atom_line = line    # Obtains atom declaration line, as above
                 break
@@ -72,19 +72,17 @@ class FrameReader(object):
                 column_count += 1
                 continue
         position_x_column = column_count
-        atom_positions = []           # Creates a list to store the position vector of the atom at each frame
-        line_count = 0
-        for line in raw_atom_lines:
-            position_vector = []    # Creates a list to store the vector for this frame
-            data_columns = line.split()
-            position_vector.append(data_columns[position_x_column])       # Stores the x-component into the position vector
-            position_vector.append(data_columns[position_x_column + 1])   # Stores the y-component into the position vector
-            position_vector.append(data_columns[position_x_column + 2])   # Stores the z-component into the position vector
-            atom_positions.append(position_vector)    # Adds the position vector into the list of position vectors
-        return atom_positions    # Returns the list of atom positions
+        for atom in frame.atoms:
+            for line in frame_lines:
+                data_columns = line.split()
+                if data_columns == str(atom.atom_id)
+                atom.coords[0] = data_columns[position_x_column]
+                atom.coords[1] = data_columns[position_x_column+1]
+                atom.coords[2] = data_columns[position_x_column+2]
+    # No return for the function
 
 
-    def readAtomDipoles(lammpstrj, raw_atom_lines):
+    def readAtomDipoles(self, frame_lines, frame):
         """ Function to extract the dipole vectors for each
         atom, so that the positions of the dummy atoms can
         be calculated.
@@ -149,20 +147,21 @@ class FrameReader(object):
         count_line = 0
         count_frame = 0
         for line in self.all_lines:
-            count_line += 1
             if line[:14] == "ITEM: TIMESTEP":
                 count_frame += 1
-                if count == number:
                     break
                 continue
             else:
+                count_line += 1
                 continue
-        count = count_line
         frame_lines = []
-        for line in range(count_line, len(self.all_lines)):
-            if line[:11] == "ITEM: ATOMS":
-                for x in range(self.total_atoms):                        # Upon reaching the atom data section, the next (total_atoms)
-                    frame_lines.append(self.all_lines[count + x + 1])     # lines are extracted and stored into a list
+        check = 0 # Checks for the end of a frame section
+        for x in xrange(count_line, len(self.all_lines)):
+            if line[:14] == "TIMESTEP":
+                check += 1
+            if line[:14] == "TIMESTEP" and check > 1:
+                break
+            frame_lines.append(x)
         return frame_lines
 
 if __name__ == "__main__":
