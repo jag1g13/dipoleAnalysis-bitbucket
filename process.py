@@ -9,9 +9,10 @@ from optparse import OptionParser
 
 from FrameReader import FrameReader
 
+
 class Atom:
     def __init__(self, atom_type=None, coords=None, dipole=None):
-        self.atom_type = atom_type
+        self.atom_id = atom_type
 
         if coords is None:
             self.coords = np.zeros(3)
@@ -19,13 +20,13 @@ class Atom:
             self.coords = coords
 
         if dipole is None:
-            self.coords = np.zeros(3)
+            self.dipole = np.zeros(3)
         else:
             self.dipole = dipole
 
     def __repr__(self):
-        return "<Atom {0} @ {1}, {2}, {2} with dipole {4}, {5}, {6}>"\
-               .format(self.atom_type, self.coords[0], self.coords[1], self.coords[2],
+        return "<Atom {0} @ {1:8.3f}, {2:8.3f}, {3:8.3f} with dipole {4:8.3f}, {5:8.3f}, {6:8.3f}>"\
+               .format(self.atom_id, self.coords[0], self.coords[1], self.coords[2],
                        self.dipole[0], self.dipole[1], self.dipole[2])
 
 class Frame:
@@ -34,6 +35,7 @@ class Frame:
         self.atoms = []
         for i in xrange(natoms):
             self.atoms.append(Atom())
+        print(len(self.atoms))
 
     def __repr__(self):
         return "<Frame {0} containing {1} atoms>\n{2}".format(self.num, len(self.atoms), self.title)
@@ -85,7 +87,6 @@ class Frame:
         """
         print coordinates of the atoms numbered start to end
         """
-        print(self.title)
         if end == -1:
             end = len(self.atoms)
         for i in xrange(start, end):
@@ -153,6 +154,11 @@ def graph_output(output_all):
         plt.subplot(2,3, i+1)
         data = plt.hist(item, bins=100, normed=1)
 
+def calcAngles1(frame):
+    return np.ones(3)
+
+def calcAngles2(frame):
+    return np.ones(3)
 
 def analyse(filename, natoms):
     """
@@ -171,6 +177,7 @@ def analyse(filename, natoms):
             print("ERROR: Requested more atoms than are in trajectory")
             sys.exit(1)
     nframes = reader.total_frames
+    print(natoms, nframes)
 
     angle1 = np.zeros((nframes, natoms))
     angle2 = np.zeros((nframes, natoms))
@@ -178,9 +185,11 @@ def analyse(filename, natoms):
     frame = Frame(natoms)
     for i in xrange(nframes):
         # Read in frame from trajectory and process
-        reader.getFrame(frame)
+        reader.readFrame(i, frame)
         angle1_tmp = calcAngles1(frame)
         angle2_tmp = calcAngles2(frame)
+        print(i)
+        frame.show_atoms(0,6)
 
         for j in xrange(3):
             angle1[i, j] = angle1_tmp[j]

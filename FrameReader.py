@@ -56,12 +56,14 @@ class FrameReader(object):
         raw_atom_lines - raw, unedited lines, specific to
           one atom. """
         # Function works in the same way as readAtomDipoles(), but written as separate functions for clarity
-        for line in frame_lines:
+        start_line = 0
+
+        for i, line in enumerate(frame_lines):
             if line[:11] == "ITEM: ATOMS":
                 atom_line = line    # Obtains atom declaration line, as above
+                start_line = i+1
                 break
-            else:
-                continue
+
         atom_columns = atom_line.split()
         atom_columns = atom_columns[2:]   # Breaks the line into columns and removes the unnecessary first two columns
         column_count = 0
@@ -70,15 +72,14 @@ class FrameReader(object):
                 break
             else:
                 column_count += 1
-                continue
+
         position_x_column = column_count
-        for atom in frame.atoms:
-            for line in frame_lines:
-                data_columns = line.split()
-                if data_columns == str(atom.atom_id)
-                atom.coords[0] = data_columns[position_x_column]
-                atom.coords[1] = data_columns[position_x_column+1]
-                atom.coords[2] = data_columns[position_x_column+2]
+        # for atom in frame.atoms:
+        for i, line in enumerate(frame_lines[start_line:]):
+            data_columns = line.split()
+            frame.atoms[i].coords[0] = data_columns[position_x_column]
+            frame.atoms[i].coords[1] = data_columns[position_x_column+1]
+            frame.atoms[i].coords[2] = data_columns[position_x_column+2]
     # No return for the function
 
 
@@ -89,35 +90,39 @@ class FrameReader(object):
         lammpstrj - the raw, unedited trajectory.
         raw_atom_lines - the raw, unedited lines, specific
           one atom number. """
-        for line in frame_lines:
+        start_line = 0
+
+        for i, line in enumerate(frame_lines):
             if line[:11] == "ITEM: ATOMS":
                 atom_line = line    # Searches for the line that details the atom columns
+                start_line = i+1
                 break               # in order to identify the dipole columns
-            else:
-                continue
+
         atom_columns = atom_line.split()  # Breaks up the column headings
         atom_columns = atom_columns[2:]   # Removes the first two elements as they do not correspond to columns of data
         column_count = 0                  # Used to keep track of the column numbers
+
         for header in atom_columns:
             if header == "mux":           # Looks for the column containing the x-component of the dipole
                 break
             else:
                 column_count += 1
-                continue
+
         dipole_x_column = column_count    # Sets the column number for the dipole x-component
         atom_dipoles = []                 # Defines a list to contain the dipole vectors of the atom at each frame
-        for atom in frame.atoms:
-            for line in frame_lines:
-                data_columns = line.split()
-                if data_columns[0] == str(atom.atom_id):
-                    atom.dipole[0] = data_columns[dipole_x_column]
-                    atom.dipole[1] = data_columns[dipole_x_column+1]
-                    atom.dipole[2] = data_columns[dipole_x_column+2]
-                else:
-                    break
+
+        for i, line in enumerate(frame_lines[start_line:]):
+            data_columns = line.split()
+            frame.atoms[i].dipole[0] = data_columns[dipole_x_column]
+            frame.atoms[i].dipole[1] = data_columns[dipole_x_column+1]
+            frame.atoms[i].dipole[2] = data_columns[dipole_x_column+2]
         # Function doesn't return anything...
 
-    
+    def readFrame(self, frame_num, frame):
+        frame_lines = self.extractFrame(frame_num)
+        self.readAtomCoords(frame_lines, frame)
+        self.readAtomDipoles(frame_lines, frame)
+
     def filterRemove(raw_atom_lines, atom_type_remove):
         """ Function to remove atoms of a certain atom type
         (e.g. CG water) from the output trajectory.
@@ -127,14 +132,15 @@ class FrameReader(object):
         filtered_lines = []   # Defines a list to store the lines that pass through the filter
         removed_IDs = []      # Stores the ID numbers of atoms that have been removed
         remove_num = str(atom_type_remove)    # Converts the atom type to string format
+
         for line in raw_atom_lines:
             data_columns = line.split()
+
             if data_columns[1] != remove_num:  # The line passes through the filter if the atom type
                 filtered_lines.append(line)    # does not match that which is to be removed
-                continue
             else:
                 removed_IDs.append(data_columns[0])  # Adds the removed ID to the list
-                continue
+
         return filtered_lines, removed_IDs   # Returns the set of lines containing the desired atom types
 
     def extractFrame(self, number):
@@ -148,20 +154,23 @@ class FrameReader(object):
         count_frame = 0
         for line in self.all_lines:
             if line[:14] == "ITEM: TIMESTEP":
-                count_frame += 1
+                if count_frame == number:
                     break
-                continue
+                count_frame += 1
             else:
                 count_line += 1
-                continue
+
         frame_lines = []
         check = 0 # Checks for the end of a frame section
-        for x in xrange(count_line, len(self.all_lines)):
-            if line[:14] == "TIMESTEP":
+
+        for i in xrange(count_line, len(self.all_lines)):
+            line = self.all_lines[i]
+            if line[:14] == "ITEM: TIMESTEP":
                 check += 1
-            if line[:14] == "TIMESTEP" and check > 1:
+            if line[:14] == "ITEM: TIMESTEP" and check > 1:
                 break
-            frame_lines.append(x)
+            frame_lines.append(line)
+
         return frame_lines
 
 if __name__ == "__main__":
