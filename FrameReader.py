@@ -1,3 +1,4 @@
+import sys
 
 class FrameReader(object):
     def __init__(self, filename):
@@ -160,3 +161,7 @@ class FrameReader(object):
                 for x in range(self.total_atoms):                        # Upon reaching the atom data section, the next (total_atoms)
                     frame_lines.append(self.all_lines[count + x + 1])     # lines are extracted and stored into a list
         return frame_lines
+
+if __name__ == "__main__":
+    print("This file is intended to be imported as a module, not run from the command line")
+    sys.exit(0)

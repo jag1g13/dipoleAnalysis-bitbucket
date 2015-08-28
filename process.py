@@ -9,18 +9,28 @@ from math import sqrt
 from optparse import OptionParser
 
 class Atom:
-    def __init__(self, atom_type, coords, dipole):
+    def __init__(self, atom_type=None, coords=None, dipole=None):
         self.atom_type = atom_type
-        self.coords = coords
-        self.dipole = dipole
+
+        if coords is None:
+            self.coords = np.zeros(3)
+        else:
+            self.coords = coords
+
+        if dipole is None:
+            self.coords = np.zeros(3)
+        else:
+            self.dipole = dipole
 
     def __repr__(self):
-        return "<Atom {0} charge={1}, mass={2} @ {3}, {4}, {5}>".format(self.atom_type, *self.coords, *self.dipole)
+        return "<Atom {0} @ {1}, {2}, {2} with dipole {4}, {5}, {6}>".format(self.atom_type, *self.coords, *self.dipole)
 
 class Frame:
-    def __init__(self, num):
-        self.num = num
+    def __init__(self, natoms):
+        self.natoms = natoms
         self.atoms = []
+        for i in xrange(natoms):
+            self.atoms.append(Atom())
 
     def __repr__(self):
         return "<Frame {0} containing {1} atoms>\n{2}".format(self.num, len(self.atoms), self.title)
@@ -77,24 +87,6 @@ class Frame:
             end = len(self.atoms)
         for i in xrange(start, end):
             print(self.atoms[i])
-
-    def get_bond_lens(self, request=bond_pairs):
-        dists = np.zeros(len(request))
-        for i, pair in enumerate(request):
-            dists[i] = self.bond_length(self.atom_nums[pair[0]], self.atom_nums[pair[1]])
-        return dists
-
-    def get_bond_angles(self, request=bond_triples):
-        angles = np.zeros(len(request))
-        for i, triple in enumerate(request):
-            angles[i] = self.bond_angle(self.atom_nums[triple[0]], self.atom_nums[triple[1]], self.atom_nums[triple[1]], self.atom_nums[triple[2]])
-        return angles
-
-    def get_bond_dihedrals(self, request=bond_quads):
-        dihedrals = np.zeros(len(request))
-        for i, quad in enumerate(request):
-            dihedrals[i] = self.bond_angle(self.atom_nums[quad[0]], self.atom_nums[quad[1]], self.atom_nums[quad[2]], self.atom_nums[quad[3]])
-        return dihedrals
 
 def calc_measures(frames, req="length", request=bond_quads, export=True):
     print("Calculating bond "+req+"s")
@@ -162,25 +154,29 @@ def graph_output(output_all):
 def analyse(filename, natoms):
     """
     Perform analysis of dipoles in LAMMPS trajectory
-    :param lammpstrj: LAMMPS trajectory
+    :param lammpstrj: Filename of LAMMPS trajectory
     :return: Nothing
     """
     t_start = time.clock()
     np.set_printoptions(precision=3, suppress=True)
-    frame = Frame()
+    reader = FrameReader(filename)
 
     if natoms == -1:
-        natoms = reader.getNumAtoms()
-    # Is it efficient to read the whole trajectory twice?
-    #nframes = reader.getNumFrames()
-    angles
+        natoms = reader.total_atoms
+    else:
+        if natoms > reader.total_atoms:
+            print("ERROR: Requested more atoms than are in trajectory")
+            sys.exit(1)
+    nframes = reader.total_frames
 
-    # Read in frame from trajectory
-    with FrameReader(filename) as reader:
-        while reader.getFrame(frame):
-            # Process frame
-            angle1 = np.zeros(natoms)
-            angle2 = np.zeros(natoms)
+    angle1 = np.zeros(nframes, natoms)
+    angle2 = np.zeros(nframes, natoms)
+
+    frame = Frame(natoms)
+    for i in xrange(nframes):
+        # Read in frame from trajectory and process
+        reader.getFrame(frame)
+
 
     t_end = time.clock()
     print("\rCalculated {0} frames in {1}s\n".format(len(cg_frames), (t_end - t_start)) + "-"*20)
