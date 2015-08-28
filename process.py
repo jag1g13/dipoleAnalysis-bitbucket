@@ -9,8 +9,8 @@ from math import sqrt
 from optparse import OptionParser
 
 class Atom:
-    def __init__(self, atom_type, coords, dipole):
-        self.atom_type = atom_type
+    def __init__(self, atom_id, coords, dipole):
+        self.atom_id = atom_type
         self.coords = coords
         self.dipole = dipole
 
