@@ -91,7 +91,7 @@ class FrameReader(object):
         lammpstrj - the raw, unedited trajectory.
         raw_atom_lines - the raw, unedited lines, specific
           one atom number. """
-        for line in lammpstrj:
+        for line in frame_lines:
             if line[:11] == "ITEM: ATOMS":
                 atom_line = line    # Searches for the line that details the atom columns
                 break               # in order to identify the dipole columns
@@ -108,15 +108,18 @@ class FrameReader(object):
                 continue
         dipole_x_column = column_count    # Sets the column number for the dipole x-component
         atom_dipoles = []                 # Defines a list to contain the dipole vectors of the atom at each frame
-        for line in raw_atom_lines:
-            dipole_vector = []            # Defines a vector to hold each of the dipole components
-            data_columns = line.split()   # Breaks the data up into columns
-            dipole_vector.append(data_columns[dipole_x_column])       # Stores the x-component into the dipole_vector
-            dipole_vector.append(data_columns[dipole_x_column + 1])   # Stores the y-component into the dipole_vector
-            dipole_vector.append(data_columns[dipole_x_column + 2])   # Stores the z-component into the dipole_vector
-            atom_dipoles.append(dipole_vector)     # Adds the dipole vector onto the list for this atom
-        return atom_dipoles    # Returns the list of the vectors for this particular atom type
+        for atom in frame.atoms:
+            for line in frame_lines:
+                data_columns = line.split()
+                if data_columns[0] == str(atom.atom_id):
+                    atom.dipole[0] = data_columns[dipole_x_column]
+                    atom.dipole[1] = data_columns[dipole_x_column+1]
+                    atom.dipole[2] = data_columns[dipole_x_column+2]
+                else:
+                    break
+        # Function doesn't return anything...
 
+    
     def filterRemove(raw_atom_lines, atom_type_remove):
         """ Function to remove atoms of a certain atom type
         (e.g. CG water) from the output trajectory.
