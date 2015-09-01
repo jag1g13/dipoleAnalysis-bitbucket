@@ -8,6 +8,7 @@ from math import sqrt
 from optparse import OptionParser
 
 from FrameReader import FrameReader
+import planeAngles
 
 
 class Atom:
@@ -35,10 +36,9 @@ class Frame:
         self.atoms = []
         for i in xrange(natoms):
             self.atoms.append(Atom())
-        print(len(self.atoms))
 
     def __repr__(self):
-        return "<Frame {0} containing {1} atoms>\n{2}".format(self.num, len(self.atoms), self.title)
+        return "<Frame containing {1} atoms>".format(natoms)
         
     def bond_length(self, num1, num2):
         """
@@ -91,6 +91,18 @@ class Frame:
             end = len(self.atoms)
         for i in xrange(start, end):
             print(self.atoms[i])
+
+    def dipoleAngle(self, a, b):
+        """
+        Calculate angle of dipole on atom a with respect to bond vector a->b
+        :param a: Atom number
+        :param b: Atom number
+        :return: Angle of dipole with respect to bond
+        """
+        if np.any(self.atoms[a].dipole):
+            return planeAngles.angleBetweenVectors(self.atoms[a].dipole, self.atoms[b].coords-self.atoms[a].coords)
+        else:
+            return 0
 
 def calc_measures(frames, req, request, export=True):
     print("Calculating bond "+req+"s")
@@ -154,19 +166,25 @@ def graph_output(output_all):
         plt.subplot(2,3, i+1)
         data = plt.hist(item, bins=100, normed=1)
 
-def calcAngles1(frame):
-    return np.ones(3)
+def calcAnglesAll(frame, offset=1, natoms=6):
+    """
+    Calculate dipole angle for every atom in ring
+    :param frame: Frame instance
+    :param offset: How many atoms around ring to calculate angle with respect to
+    :param natoms: Number of atoms in ring
+    :return: Numpy array containing angles
+    """
+    angles = np.zeros(natoms)
+    for i in xrange(natoms):
+        angles[i] = frame.dipoleAngle(i, (i+offset)%natoms)
+    return angles
 
-def calcAngles2(frame):
-    return np.ones(3)
-
-def analyse(filename, natoms):
+def analyse(filename, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
     :param lammpstrj: Filename of LAMMPS trajectory
-    :return: Nothing
+    :return: Number of frames in trajectory
     """
-    t_start = time.clock()
     np.set_printoptions(precision=3, suppress=True)
     reader = FrameReader(filename)
 
@@ -177,30 +195,36 @@ def analyse(filename, natoms):
             print("ERROR: Requested more atoms than are in trajectory")
             sys.exit(1)
     nframes = reader.total_frames
-    print(natoms, nframes)
 
-    angle1 = np.zeros((nframes, natoms))
-    angle2 = np.zeros((nframes, natoms))
+    angle1 = np.zeros((nframes, 6))
+    angle2 = np.zeros((nframes, 6))
+    angle1avg = np.zeros(6)
+    angle2avg = np.zeros(6)
 
     frame = Frame(natoms)
     for i in xrange(nframes):
         # Read in frame from trajectory and process
         reader.readFrame(i, frame)
-        angle1_tmp = calcAngles1(frame)
-        angle2_tmp = calcAngles2(frame)
-        print(i)
-        frame.show_atoms(0,6)
+        angle1_tmp = calcAnglesAll(frame)
+        angle2_tmp = calcAnglesAll(frame, 3)
+        # frame.show_atoms(0,6)
 
-        for j in xrange(3):
+        angle1avg += angle1_tmp
+        angle2avg += angle2_tmp
+
+        for j in xrange(6):
             angle1[i, j] = angle1_tmp[j]
             angle2[i, j] = angle2_tmp[j]
 
-    analyseAngles(angle1)
-    analyseAngles(angle2)
+    angle1avg /= nframes
+    angle2avg /= nframes
+    # print(angle1avg)
+    # print(angle2avg)
 
-    t_end = time.clock()
-    print("\rCalculated {0} frames in {1}s\n".format(len(cg_frames), (t_end - t_start)) + "-"*20)
-    return len(cg_frames)
+    # analyseAngles(angle1)
+    # analyseAngles(angle2)
+
+    return nframes
 
 
 if __name__ == "__main__":
@@ -215,7 +239,12 @@ if __name__ == "__main__":
     #                   action="store_true", dest="verbose", default=False,
     #                   help="Make more verbose")
     (options, args) = parser.parse_args()
+    print("="*25)
     if not options.lammpstrj:
         print("Must provide LAMMPS trajectory to run")
         sys.exit(1)
-    analyse(options.lammpstrj, options.natoms)
+    t_start = time.clock()
+    for i in xrange(1000):
+        nframes = analyse(options.lammpstrj)
+    t_end = time.clock()
+    print("\rCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "-"*25)

@@ -3,11 +3,11 @@ import sys
 class FrameReader(object):
     def __init__(self, filename):
         file_ = open(filename, 'r')
-        print("Read file: {0}".format(filename))
         self.all_lines = file_.readlines()
         file_.close()
         self.total_frames = self.getNumFrames()
         self.total_atoms = self.getNumAtoms()
+        print("Read file: {0}".format(filename))
         # self.atom_lines = extractAtomLines_all(self)
 
     def getNumFrames(self):
