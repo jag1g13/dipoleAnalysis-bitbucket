@@ -70,11 +70,11 @@ class Frame:
         :param b: Atom number
         :return: Angle of dipole with respect to bond
         """
-        if np.any(self.atoms[a].dipole):
-            return planeAngles.angleBetweenVectors(self.atoms[a].dipole,
-                                                   self.atoms[b].coords-self.atoms[a].coords)
-        else:
+        if not np.any(self.atoms[a].dipole):
             return 0
+
+        return planeAngles.angleBetweenVectors(self.atoms[a].dipole,
+                                                   self.atoms[b].coords-self.atoms[a].coords)
 
     def dipoleImproper(self, a, b, c):
         """
@@ -84,6 +84,9 @@ class Frame:
         :param c: Atom number
         :return: Improper dihedral angle
         """
+        if not np.any(self.atoms[a].dipole):
+            return 0
+
         crossProd1 = np.cross(self.atoms[a].dipole, (self.atoms[a].coords-self.atoms[b].coords))  # consistency with dihedral_dipole.cpp
         mag1 = sqrt((crossProd1[0]*crossProd1[0])+(crossProd1[1]*crossProd1[1])+(crossProd1[2]*crossProd1[2]))
         crossProd1 /= mag1
@@ -252,8 +255,8 @@ def analyse(filename, natoms=-1):
         print("-"*5)
         print(boltzmannInvert(angle1[:, j]))
         print(boltzmannInvert(angle2[:, j]))
-        print(boltzmannInvert(improper[:, j]))
         print(boltzmannInvert(angle3[:, j]))
+        print(boltzmannInvert(improper[:, j]))
         # plt.hist(angle1[:, j], 50, normed=1)
         # plt.show()
 
