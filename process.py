@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from math import sqrt
 from optparse import OptionParser
+from math import atan2
 
 from FrameReader import FrameReader
 import planeAngles
@@ -74,6 +75,31 @@ class Frame:
                                                    self.atoms[b].coords-self.atoms[a].coords)
         else:
             return 0
+
+    def dipoleImproper(self, a, b, c):
+        """
+        Calculate improper of dipole on atom a with respect to bond vector b->c (or c->b?)
+        :param a: Atom number (with dipole)
+        :param b: Atom number
+        :param c: Atom number
+        :return: Improper dihedral angle
+        """
+        crossProd1 = np.cross(a.dipole, (a.coords-b.coords))  # consistency with dihedral_dipole.cpp
+        mag1 = sqrt((crossProd1[0]*crossProd1[0])+(crossProd1[1]*crossProd1[1])+(crossProd1[2]*crossProd1[2]))
+        crossProd1 /= mag1
+        crossProd2 = np.cross((c.coords-b.coords), (a.coords-b.coords))
+        mag2 = sqrt((crossProd2[0]*crossProd2[0])+(crossProd2[1]*crossProd2[1])+(crossProd2[2]*crossProd2[2]))
+        crossProd2 /= mag2
+
+        middle = b.coords-a.coords
+        mag3 = sqrt(middle[0]*middle[0] + middle[1]*middle[1] + middle[2]*middle[2])
+        middle /= mag3
+
+        dot = np.dot(crossProd1, crossProd2)
+        det = (crossProd1[0]*crossProd2[1]*middle[2] - crossProd1[0]*crossProd2[2]*middle[1] - crossProd1[1]*crossProd2[0]*middle[2])
+        det += (crossProd1[1]*crossProd2[2]*middle[0] + crossProd1[2]*crossProd2[0]*middle[1] - crossProd1[2]*crossProd2[1]*middle[0])
+        torsion = (-1)*atan2(det, dot)
+        return torsion
 
 
 def polar_coords(xyz, axis1=np.array([0, 0, 0]), axis2=np.array([0, 0, 0]), mod=True):
