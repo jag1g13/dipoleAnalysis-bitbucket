@@ -30,6 +30,7 @@ class Atom:
                .format(self.atom_id, self.coords[0], self.coords[1], self.coords[2],
                        self.dipole[0], self.dipole[1], self.dipole[2])
 
+
 class Frame:
     def __init__(self, natoms):
         self.natoms = natoms
@@ -39,42 +40,11 @@ class Frame:
 
     def __repr__(self):
         return "<Frame containing {1} atoms>".format(natoms)
-        
-    def bond_length(self, num1, num2):
-        """
-        return Euclidean distance between two atoms
-        """
-        dist = np.linalg.norm(self.atoms[num1].loc - self.atoms[num2].loc)
-        #print("Distance between atoms {0} and {1} is {2}".format(num1, num2, dist))
-        return dist
 
-    def bond_length_atoms(self, atom1, atom2):
-        """
-        return Euclidean distance between two atoms
-        """
-        dist = sqrt((atom1.loc[0]-atom2.loc[0])**2 +  (atom1.loc[1]-atom2.loc[1])**2 + (atom1.loc[2]-atom2.loc[2])**2)
-        #dist = sqrt(sum((atom1.loc-atom2.loc)**2))
-        #dist = np.linalg.norm(atom1.loc - atom2.loc)
-        #print("Distance between atoms {0} and {1} is {2}".format(num1, num2, dist))
-        return dist
-    
-    def bond_angle(self, num1, num2, num3, num4):
-        """
-        angle at atom2 formed by bonds: 1-2 and 2-3
-        """
-        vec1 = (self.atoms[num2].loc - self.atoms[num1].loc)
-        vec2 = (self.atoms[num4].loc - self.atoms[num3].loc)
-        #vec1 = vec1 / np.linalg.norm(vec1)
-        vec1 = vec1 / sqrt(vec1[0]**2 + vec1[1]**2 + vec1[2]**2)
-        #vec2 = vec2 / np.linalg.norm(vec2)
-        vec2 = vec2 / sqrt(vec2[0]**2 + vec2[1]**2 + vec2[2]**2)
-        angle = np.arccos(np.dot(vec1, vec2))
-        return 180 - (angle * 180 / np.pi)
-    
     def angle_norm_bisect(self, num1, num2, num3):
         """
         return normal vector to plane formed by 3 atoms and their bisecting vector
-        """ 
+        """
         vec1 = (self.atoms[num2].loc - self.atoms[num1].loc)
         vec2 = (self.atoms[num3].loc - self.atoms[num2].loc)
         vec1 = vec1 / np.linalg.norm(vec1)
@@ -100,38 +70,13 @@ class Frame:
         :return: Angle of dipole with respect to bond
         """
         if np.any(self.atoms[a].dipole):
-            return planeAngles.angleBetweenVectors(self.atoms[a].dipole, self.atoms[b].coords-self.atoms[a].coords)
+            return planeAngles.angleBetweenVectors(self.atoms[a].dipole,
+                                                   self.atoms[b].coords-self.atoms[a].coords)
         else:
             return 0
 
-def calc_measures(frames, req, request, export=True):
-    print("Calculating bond "+req+"s")
-    if export:
-        f = open("bond_"+req+"s.csv", "a")
-    t_start = time.clock()
-    measures = []
-    if export:
-        measure_names = ["-".join(name) for name in request]
-        f.write(",".join(measure_names) + "\n")
-    for i, frame in enumerate(frames):
-        perc = i * 100. / len(frames)
-        if(i%100 == 0):
-            sys.stdout.write("\r{:2.0f}% ".format(perc) + "X" * int(0.2*perc) + "-" * int(0.2*(100-perc)) )
-            sys.stdout.flush()
-        measures.append(frame.calc_measure[req](request))
-        if export:
-            measures_text = [str(num) for num in measures[-1]]
-            f.write(",".join(measures_text) + "\n")
-    avg = np.mean(measures, axis=0)
-    t_end = time.clock()
-    if export:
-        f.truncate()
-        f.close()
-    print("\rCalculated {0} frames in {1}s\n".format(len(frames), (t_end - t_start)) + "-"*20)
-    return measures, avg
 
-
-def polar_coords(xyz, axis1=np.array([0,0,0]), axis2=np.array([0,0,0]), mod=True):
+def polar_coords(xyz, axis1=np.array([0, 0, 0]), axis2=np.array([0, 0, 0]), mod=True):
     """
     Convert cartesian coordinates to polar, if axes are given it will be reoriented.
     axis points to the north pole (latitude), axis2 points to 0 on equator (longitude)
@@ -144,11 +89,11 @@ def polar_coords(xyz, axis1=np.array([0,0,0]), axis2=np.array([0,0,0]), mod=True
     polar[1] = np.arctan2(np.sqrt(xy), xyz[2]) - axis1[1]
     polar[2] = np.arctan2(xyz[1], xyz[0]) - axis2[2]
 
-    if axis2[1]<0:
+    if axis2[1] < 0:
         polar[2] = polar[2] + tpi
     if mod:
-        polar[1] = polar[1]%(tpi)
-        polar[2] = polar[2]%(tpi)
+        polar[1] = polar[1] % (tpi)
+        polar[2] = polar[2] % (tpi)
 
     return polar
 
@@ -163,8 +108,9 @@ def graph_output(output_all):
     plt.figure()
 
     for i, item in enumerate(rearrange):
-        plt.subplot(2,3, i+1)
+        plt.subplot(2, 3, i+1)
         data = plt.hist(item, bins=100, normed=1)
+
 
 def boltzmannInvert(vals, temp=300):
     """
@@ -182,18 +128,20 @@ def boltzmannInvert(vals, temp=300):
 
     return (mean, fc)
 
+
 def calcAnglesAll(frame, offset=1, natoms=6):
     """
     Calculate dipole angle for every atom in ring
     :param frame: Frame instance
-    :param offset: How many atoms around ring to calculate angle with respect to
+    :param offset: Calculate angle with respect to N around the ring
     :param natoms: Number of atoms in ring
     :return: Numpy array containing angles
     """
     angles = np.zeros(natoms)
     for i in xrange(natoms):
-        angles[i] = frame.dipoleAngle(i, (i+offset)%natoms)
+        angles[i] = frame.dipoleAngle(i, (i+offset) % natoms)
     return angles
+
 
 def analyse(filename, natoms=-1):
     """
@@ -229,8 +177,8 @@ def analyse(filename, natoms=-1):
 
     for j in xrange(6):
         print("-"*5)
-        print(boltzmannInvert(angle1[:,j]))
-        print(boltzmannInvert(angle2[:,j]))
+        print(boltzmannInvert(angle1[:, j]))
+        print(boltzmannInvert(angle2[:, j]))
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)

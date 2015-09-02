@@ -5,6 +5,7 @@ from math import acos
 from math import pi
 import sys
 
+
 def normalToPlane(a, b, c):
     """
     Calculate the vector normal to a plane containing 3 atoms, by taking the cross product of the two vectors
@@ -32,6 +33,7 @@ def normalToPlane(a, b, c):
     # norm /= norm_mag
 
     return norm
+
 
 def angleBetweenVectors(a, b):
     """

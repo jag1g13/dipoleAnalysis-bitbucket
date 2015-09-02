@@ -1,5 +1,6 @@
 import sys
 
+
 class FrameReader(object):
     def __init__(self, filename):
         file_ = open(filename, 'r')
@@ -82,7 +83,6 @@ class FrameReader(object):
             frame.atoms[i].coords[2] = data_columns[position_x_column+2]
     # No return for the function
 
-
     def readAtomDipoles(self, frame_lines, frame):
         """ Function to extract the dipole vectors for each
         atom, so that the positions of the dummy atoms can
@@ -161,7 +161,7 @@ class FrameReader(object):
                 count_line += 1
 
         frame_lines = []
-        check = 0 # Checks for the end of a frame section
+        check = 0  # Checks for the end of a frame section
 
         for i in xrange(count_line, len(self.all_lines)):
             line = self.all_lines[i]
