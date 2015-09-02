@@ -3,9 +3,8 @@ import sys
 
 class FrameReader(object):
     def __init__(self, filename):
-        file_ = open(filename, 'r')
-        self.all_lines = file_.readlines()
-        file_.close()
+        with open(filename) as file:
+            self.all_lines = file.read().splitlines()
         self.total_frames = self.getNumFrames()
         self.total_atoms = self.getNumAtoms()
         print("Read file: {0}".format(filename))
@@ -59,6 +58,7 @@ class FrameReader(object):
         # Function works in the same way as readAtomDipoles(), but written as separate functions for clarity
         start_line = 0
 
+        atom_line = ""
         for i, line in enumerate(frame_lines):
             if line[:11] == "ITEM: ATOMS":
                 atom_line = line    # Obtains atom declaration line, as above
@@ -149,29 +149,9 @@ class FrameReader(object):
         :param number: Frame number to be extracted
         :return: Lines pertaining to the selected frame.
         """
-        # Assuming that the number is counted from 1
-        count_line = 0
-        count_frame = 0
-        for line in self.all_lines:
-            if line[:14] == "ITEM: TIMESTEP":
-                if count_frame == number:
-                    break
-                count_frame += 1
-            else:
-                count_line += 1
-
-        frame_lines = []
-        check = 0  # Checks for the end of a frame section
-
-        for i in xrange(count_line, len(self.all_lines)):
-            line = self.all_lines[i]
-            if line[:14] == "ITEM: TIMESTEP":
-                check += 1
-            if line[:14] == "ITEM: TIMESTEP" and check > 1:
-                break
-            frame_lines.append(line)
-
-        return frame_lines
+        start = (self.total_atoms + 9) * number
+        end = start + self.total_atoms + 9
+        return self.all_lines[start:end]
 
 if __name__ == "__main__":
     print("This file is intended to be imported as a module, not run from the command line")

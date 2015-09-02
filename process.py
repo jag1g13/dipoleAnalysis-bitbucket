@@ -163,8 +163,9 @@ def boltzmannInvert(vals, temp=300):
     if not np.any(vals):
         return (0, 0)
 
-    mean = 180 * np.mean(vals) / np.pi
-    sdev = np.std(vals)
+    mdat = np.ma.masked_array(vals, np.logical_or(np.isnan(vals), np.equal(vals, np.zeros_like(vals))))
+    mean = 180 * np.mean(mdat) / np.pi
+    sdev = np.std(mdat)
     fc = 1.987e-3 * temp / (sdev*sdev)
 
     return (mean, fc)
@@ -180,7 +181,8 @@ def calcAnglesAll(frame, offset=1, natoms=6):
     """
     angles = np.zeros(natoms)
     for i in xrange(natoms):
-        angles[i] = frame.dipoleAngle(i, (i+offset) % natoms)
+        if np.any(frame.atoms[i].dipole):
+            angles[i] = frame.dipoleAngle(i, (i+offset) % natoms)
     return angles
 
 
@@ -193,7 +195,8 @@ def calcImpropersAll(frame, natoms=6):
     """
     impropers = np.zeros(natoms)
     for i in xrange(natoms):
-        impropers[i] = frame.dipoleImproper(i, (i+1)%natoms, (i+5)%natoms)
+        if np.any(frame.atoms[i].dipole):
+            impropers[i] = frame.dipoleImproper(i, (i+1)%natoms, (i+5)%natoms)
     return impropers
 
 
@@ -236,7 +239,8 @@ def analyse(filename, natoms=-1):
     angle3 = np.zeros((nframes, 6))
 
     frame = Frame(natoms)
-    for i in xrange(nframes):
+    print(nframes)
+    for i in xrange(6):
         # Read in frame from trajectory and process
         reader.readFrame(i, frame)
         angle1_tmp = calcAnglesAll(frame)
