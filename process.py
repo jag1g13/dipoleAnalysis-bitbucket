@@ -101,6 +101,18 @@ class Frame:
         torsion = (-1)*atan2(det, dot)
         return torsion
 
+    def planeNormal(self, a, b, c):
+        """
+        Calculate normal to plane containing three atoms
+        :param a: Atom number
+        :param b: Atom number
+        :param c: Atom number
+        :return: Normal to plane containing all three atoms
+        """
+        return planeAngles.normalToPlane(self.atoms[a].coords,
+                                         self.atoms[b].coords,
+                                         self.atoms[c].coords)
+
 
 def polar_coords(xyz, axis1=np.array([0, 0, 0]), axis2=np.array([0, 0, 0]), mod=True):
     """
@@ -182,6 +194,22 @@ def calcImpropersAll(frame, natoms=6):
     return impropers
 
 
+def calcAnglesPlane(frame, offset=2, natoms=6):
+    """
+    Calculate angle between dipole and plane for every atom in ring
+    :param frame: Frame instance
+    :param offset: Calculate angle with respect to N around the ring
+    :param natoms: Number of atoms in ring
+    :return: Numpy array containing angles
+    """
+    angles = np.zeros(natoms)
+    for i in xrange(natoms):
+        if np.any(frame.atoms[i].dipole):
+            norm = frame.planeNormal(i, (i+offset)%natoms, (i+2*offset)%natoms)
+            angles[i] = planeAngles.angleBetweenVectors(frame.atoms[i].dipole, norm)
+    return angles
+
+
 def analyse(filename, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
@@ -202,6 +230,7 @@ def analyse(filename, natoms=-1):
     angle1 = np.zeros((nframes, 6))
     angle2 = np.zeros((nframes, 6))
     improper = np.zeros((nframes, 6))
+    angle3 = np.zeros((nframes, 6))
 
     frame = Frame(natoms)
     for i in xrange(nframes):
@@ -209,6 +238,7 @@ def analyse(filename, natoms=-1):
         reader.readFrame(i, frame)
         angle1_tmp = calcAnglesAll(frame)
         angle2_tmp = calcAnglesAll(frame, 3)
+        angle3_tmp = calcAnglesPlane(frame)
         improper_tmp = calcImpropersAll(frame)
         # frame.show_atoms(0,6)
 
@@ -216,12 +246,16 @@ def analyse(filename, natoms=-1):
             angle1[i, j] = angle1_tmp[j]
             angle2[i, j] = angle2_tmp[j]
             improper[i, j] = improper_tmp[j]
+            angle3[i, j] = angle3_tmp[j]
 
     for j in xrange(6):
         print("-"*5)
         print(boltzmannInvert(angle1[:, j]))
         print(boltzmannInvert(angle2[:, j]))
         print(boltzmannInvert(improper[:, j]))
+        print(boltzmannInvert(angle3[:, j]))
+        # plt.hist(angle1[:, j], 50, normed=1)
+        # plt.show()
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
@@ -248,4 +282,4 @@ if __name__ == "__main__":
     t_start = time.clock()
     nframes = analyse(options.lammpstrj)
     t_end = time.clock()
-    print("\rCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "-"*25)
+    print("-"*25 + "\nCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "="*25)
