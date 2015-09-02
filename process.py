@@ -84,14 +84,14 @@ class Frame:
         :param c: Atom number
         :return: Improper dihedral angle
         """
-        crossProd1 = np.cross(a.dipole, (a.coords-b.coords))  # consistency with dihedral_dipole.cpp
+        crossProd1 = np.cross(self.atoms[a].dipole, (self.atoms[a].coords-self.atoms[b].coords))  # consistency with dihedral_dipole.cpp
         mag1 = sqrt((crossProd1[0]*crossProd1[0])+(crossProd1[1]*crossProd1[1])+(crossProd1[2]*crossProd1[2]))
         crossProd1 /= mag1
-        crossProd2 = np.cross((c.coords-b.coords), (a.coords-b.coords))
+        crossProd2 = np.cross((self.atoms[c].coords-self.atoms[b].coords), (self.atoms[a].coords-self.atoms[b].coords))
         mag2 = sqrt((crossProd2[0]*crossProd2[0])+(crossProd2[1]*crossProd2[1])+(crossProd2[2]*crossProd2[2]))
         crossProd2 /= mag2
 
-        middle = b.coords-a.coords
+        middle = self.atoms[b].coords-self.atoms[a].coords
         mag3 = sqrt(middle[0]*middle[0] + middle[1]*middle[1] + middle[2]*middle[2])
         middle /= mag3
 
@@ -169,6 +169,19 @@ def calcAnglesAll(frame, offset=1, natoms=6):
     return angles
 
 
+def calcImpropersAll(frame, natoms=6):
+    """
+    Calculate dipole improper angle for every atom in ring
+    :param frame: Frame instance
+    :param natoms: Number of atoms in ring
+    :return: Numpy array containing impropers
+    """
+    impropers = np.zeros(natoms)
+    for i in xrange(natoms):
+        impropers[i] = frame.dipoleImproper(i, (i+1)%natoms, (i+5)%natoms)
+    return impropers
+
+
 def analyse(filename, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
@@ -188,6 +201,7 @@ def analyse(filename, natoms=-1):
 
     angle1 = np.zeros((nframes, 6))
     angle2 = np.zeros((nframes, 6))
+    improper = np.zeros((nframes, 6))
 
     frame = Frame(natoms)
     for i in xrange(nframes):
@@ -195,16 +209,19 @@ def analyse(filename, natoms=-1):
         reader.readFrame(i, frame)
         angle1_tmp = calcAnglesAll(frame)
         angle2_tmp = calcAnglesAll(frame, 3)
+        improper_tmp = calcImpropersAll(frame)
         # frame.show_atoms(0,6)
 
         for j in xrange(6):
             angle1[i, j] = angle1_tmp[j]
             angle2[i, j] = angle2_tmp[j]
+            improper[i, j] = improper_tmp[j]
 
     for j in xrange(6):
         print("-"*5)
         print(boltzmannInvert(angle1[:, j]))
         print(boltzmannInvert(angle2[:, j]))
+        print(boltzmannInvert(improper[:, j]))
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
