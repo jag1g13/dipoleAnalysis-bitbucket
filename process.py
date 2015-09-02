@@ -166,6 +166,22 @@ def graph_output(output_all):
         plt.subplot(2,3, i+1)
         data = plt.hist(item, bins=100, normed=1)
 
+def boltzmannInvert(vals, temp=300):
+    """
+    Perform Boltzmann Inversion on a list of numbers assumed to be normally distributed
+    :param vals: Array-like of numbers
+    :param vals: Temperature of simulation in Kelvin, default 300
+    :return: Tuple containing mean value and force constant
+    """
+    if not np.any(vals):
+        return (0, 0)
+
+    mean = 180 * np.mean(vals) / np.pi
+    sdev = np.std(vals)
+    fc = 1.987e-3 * temp / (sdev*sdev)
+
+    return (mean, fc)
+
 def calcAnglesAll(frame, offset=1, natoms=6):
     """
     Calculate dipole angle for every atom in ring
@@ -198,8 +214,6 @@ def analyse(filename, natoms=-1):
 
     angle1 = np.zeros((nframes, 6))
     angle2 = np.zeros((nframes, 6))
-    angle1avg = np.zeros(6)
-    angle2avg = np.zeros(6)
 
     frame = Frame(natoms)
     for i in xrange(nframes):
@@ -209,17 +223,14 @@ def analyse(filename, natoms=-1):
         angle2_tmp = calcAnglesAll(frame, 3)
         # frame.show_atoms(0,6)
 
-        angle1avg += angle1_tmp
-        angle2avg += angle2_tmp
-
         for j in xrange(6):
             angle1[i, j] = angle1_tmp[j]
             angle2[i, j] = angle2_tmp[j]
 
-    angle1avg /= nframes
-    angle2avg /= nframes
-    # print(angle1avg)
-    # print(angle2avg)
+    for j in xrange(6):
+        print("-"*5)
+        print(boltzmannInvert(angle1[:,j]))
+        print(boltzmannInvert(angle2[:,j]))
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
@@ -244,7 +255,6 @@ if __name__ == "__main__":
         print("Must provide LAMMPS trajectory to run")
         sys.exit(1)
     t_start = time.clock()
-    for i in xrange(1000):
-        nframes = analyse(options.lammpstrj)
+    nframes = analyse(options.lammpstrj)
     t_end = time.clock()
     print("\rCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "-"*25)

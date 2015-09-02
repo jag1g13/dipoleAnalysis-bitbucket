@@ -56,9 +56,10 @@ def angleBetweenVectors(a, b):
 
     cosX = dotProd / (a_mag*b_mag)
     X_rad = acos(cosX)
-    X_deg = X_rad*180 / pi
+    # X_deg = X_rad*180 / pi
 
-    return X_deg
+    # return X_deg
+    return X_rad
 
 if __name__ == "__main__":
     print("This file is intended to be imported as a module, not run from the command line")
