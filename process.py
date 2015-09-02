@@ -216,7 +216,7 @@ def calcAnglesPlane(frame, offset=2, natoms=6):
     return angles
 
 
-def analyse(filename, natoms=-1):
+def analyse(filename, nframes=-1, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
     :param lammpstrj: Filename of LAMMPS trajectory
@@ -225,13 +225,14 @@ def analyse(filename, natoms=-1):
     np.set_printoptions(precision=3, suppress=True)
     reader = FrameReader(filename)
 
-    if natoms == -1:
+    if natoms < 0:
         natoms = reader.total_atoms
     else:
-        if natoms > reader.total_atoms:
-            print("ERROR: Requested more atoms than are in trajectory")
-            sys.exit(1)
-    nframes = reader.total_frames
+        natoms = min(natoms, reader.total_atoms)
+
+    if nframes < 0:
+        nframes = reader.total_frames
+    else: nframes = min(nframes, reader.total_frames)
 
     angle1 = np.zeros((nframes, 6))
     angle2 = np.zeros((nframes, 6))
@@ -240,14 +241,19 @@ def analyse(filename, natoms=-1):
 
     frame = Frame(natoms)
     print(nframes)
-    for i in xrange(6):
+    for i in xrange(nframes):
         # Read in frame from trajectory and process
+        if i % 1000 == 0:
+            print(i)
         reader.readFrame(i, frame)
         angle1_tmp = calcAnglesAll(frame)
         angle2_tmp = calcAnglesAll(frame, 3)
         angle3_tmp = calcAnglesPlane(frame)
         improper_tmp = calcImpropersAll(frame)
         # frame.show_atoms(0,6)
+
+        if not np.any(angle1_tmp):
+            print("AAAAAGH!!!!")
 
         for j in xrange(6):
             angle1[i, j] = angle1_tmp[j]
@@ -261,14 +267,20 @@ def analyse(filename, natoms=-1):
         print(boltzmannInvert(angle2[:, j]))
         print(boltzmannInvert(angle3[:, j]))
         print(boltzmannInvert(improper[:, j]))
-        # plt.hist(angle1[:, j], 50, normed=1)
-        # plt.show()
+        plotHistogram(reduceArrays(improper[:, j]))
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
 
     return nframes
 
+def plotHistogram(array):
+    plt.hist(array, 100, normed=1)
+    plt.show()
+
+def reduceArrays(array):
+    m_array = np.ma.masked_array(array, np.logical_or(np.isnan(array), np.equal(array, np.zeros_like(array))))
+    return m_array.compressed()
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -278,6 +290,9 @@ if __name__ == "__main__":
     parser.add_option("-n", "--natoms",
                       action="store", type="int", dest="natoms", default="-1",
                       help="Number of atoms to calculate for")
+    parser.add_option("-f", "--nframes",
+                      action="store", type="int", dest="nframes", default="-1",
+                      help="Number of frames to calculate")
     # parser.add_option("-v", "--verbose",
     #                   action="store_true", dest="verbose", default=False,
     #                   help="Make more verbose")
@@ -287,6 +302,6 @@ if __name__ == "__main__":
         print("Must provide LAMMPS trajectory to run")
         sys.exit(1)
     t_start = time.clock()
-    nframes = analyse(options.lammpstrj)
+    nframes = analyse(options.lammpstrj, options.nframes)
     t_end = time.clock()
     print("-"*25 + "\nCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "="*25)
