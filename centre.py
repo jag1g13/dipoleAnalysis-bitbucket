@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import sys
 import time
 from optparse import OptionParser
@@ -27,17 +29,18 @@ def main(filename, outname, nframes=-1, natoms=-1):
         nframes = min(nframes, reader.total_frames)
 
     frame = Frame(natoms)
-    print(nframes)
     with FrameWriter(outname) as writer:
         for i in xrange(nframes):
             # Read in frame from trajectory and process
-            if i % 1000 == 0:
-                print(i)
+            progressBar(i, nframes)
             reader.readFrame(i, frame)
             writer.writeFrame(i, frame)
-
-
     return nframes
+
+def progressBar(num, total, length=50, char_done="+", char_remain="-"):
+    prog = length * (num+1) / total
+    remain = length - prog
+    print("\r" + char_done*prog + char_remain*remain, end="")
 
 
 if __name__ == "__main__":
@@ -65,4 +68,4 @@ if __name__ == "__main__":
     t_start = time.clock()
     nframes = main(options.intrj, options.outtrj, options.nframes)
     t_end = time.clock()
-    print("-"*25 + "\nCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "="*25)
+    print("\nCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "="*25)

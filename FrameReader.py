@@ -1,4 +1,5 @@
 import sys
+import itertools
 
 
 class FrameReader(object):
@@ -83,6 +84,48 @@ class FrameReader(object):
             frame.atoms[i].coords[2] = data_columns[position_x_column+2]
     # No return for the function
 
+    def parseFrame(self, frame_lines, frame):
+        """
+        Read in frame and atomic data from a single frame of a LAMMPS trajectory
+        :param frame_lines: Lines corresponding to a single frame
+        :param frame: Frame instance to read data into
+        :return: Nothing
+        """
+        start_line = 0
+        for i, line in enumerate(frame_lines):
+            if line.startswith("ITEM: TIMESTEP"):
+                frame.timestep = int(frame_lines[i+1])
+            if line.startswith("ITEM: NUMBER OF ATOMS"):
+                if frame.natoms > int(frame_lines[i+1]):
+                    print("WARNING: Input file does not fully populate atoms in Frame")
+            if line.startswith("ITEM: BOX BOUNDS"):
+                for j in xrange(3):
+                    vals = frame_lines[i+1+j].split()
+                    frame.box[j, 0] = vals[0]
+                    frame.box[j, 1] = vals[1]
+            if line.startswith("ITEM: ATOMS"):
+                start_line = i+1
+                break
+
+        atom_cols = frame_lines[start_line-1].split()
+        cols = dict(itertools.izip(atom_cols[2:], xrange(len(atom_cols)-2)))
+
+        for i, line in enumerate(frame_lines[start_line:]):
+            if i >= frame.natoms:
+                break
+            data = line.split()
+            frame.atoms[i].id = int(data[cols["id"]])
+            frame.atoms[i].type = int(data[cols["type"]])
+            frame.atoms[i].mol = int(data[cols["mol"]])
+            frame.atoms[i].coords[0] = data[cols["x"]]
+            frame.atoms[i].coords[1] = data[cols["y"]]
+            frame.atoms[i].coords[2] = data[cols["z"]]
+            frame.atoms[i].dipole[0] = data[cols["mux"]]
+            frame.atoms[i].dipole[1] = data[cols["muy"]]
+            frame.atoms[i].dipole[2] = data[cols["muz"]]
+            frame.atoms[i].mass = float(data[cols["mass"]])
+            frame.atoms[i].diameter = float(data[cols["diameter"]])
+
     def readAtomDipoles(self, frame_lines, frame):
         """ Function to extract the dipole vectors for each
         atom, so that the positions of the dummy atoms can
@@ -120,8 +163,9 @@ class FrameReader(object):
 
     def readFrame(self, frame_num, frame):
         frame_lines = self.extractFrame(frame_num)
-        self.readAtomCoords(frame_lines, frame)
-        self.readAtomDipoles(frame_lines, frame)
+        # self.readAtomCoords(frame_lines, frame)
+        # self.readAtomDipoles(frame_lines, frame)
+        self.parseFrame(frame_lines, frame)
 
     def filterRemove(raw_atom_lines, atom_type_remove):
         """ Function to remove atoms of a certain atom type

@@ -7,18 +7,14 @@ class FrameWriter(object):
         self.file = open(filename, 'w')
         self.filename = filename
         print("Opened file: {0}".format(self.filename))
-        print("Constructed FrameWriter")
 
     def __enter__(self):
-        print("Entered FrameWriter")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.file.close()
-        print("Closed file: {0}".format(self.filename))
 
     def writeFrame(self, num, frame):
-        print("Writing")
         print("ITEM: TIMESTEP", file=self.file)
         print(frame.timestep, file=self.file)
         print("ITEM: NUMBER OF ATOMS", file=self.file)
