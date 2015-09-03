@@ -142,9 +142,35 @@ class Frame:
 
         pbc = np.greater(diag, box/2)
         print(pbc)
+        cut = -0.25 * diag
         for atom in self.atoms:
             if pbc[0]:
-                pass
+                if atom.coords[0] < cut[0]:
+                    atom.coords[0] += box[0]
+            if pbc[1]:
+                if atom.coords[1] < cut[1]:
+                    atom.coords[1] += box[1]
+            if pbc[2]:
+                if atom.coords[2] < cut[2]:
+                    atom.coords[2] += box[2]
+
+        mol_com = np.zeros(3)
+        mol_mass = 0
+        mol_natoms = 0
+        for atom in self.atoms:
+            if atom.mol == mol:
+                mol_natoms += 1
+                mol_mass += atom.mass
+                mol_com += atom.mass * atom.coords
+        mol_com /= mol_mass
+
+        box = self.box[:, 1] - self.box[:, 0]
+        print(box)
+
+        min = np.zeros(3)
+        max = np.zeros(3)
+        for atom in self.atoms:
+            atom.coords -= mol_com
 
 if __name__ == "__main__":
     print("This file is intended to be imported as a module, not run from the command line")
