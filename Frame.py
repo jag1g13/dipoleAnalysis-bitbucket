@@ -6,7 +6,9 @@ import sys
 
 class Atom:
     def __init__(self, atom_type=None, coords=None, dipole=None):
-        self.atom_id = atom_type
+        self.id = 0
+        self.type = 0
+        self.mol = 0
 
         if coords is None:
             self.coords = np.zeros(3)
@@ -18,6 +20,9 @@ class Atom:
         else:
             self.dipole = dipole
 
+        self.mass = 0
+        self.diameter = 0
+
     def __repr__(self):
         return "<Atom {0} @ {1:8.3f}, {2:8.3f}, {3:8.3f} with dipole {4:8.3f}, {5:8.3f}, {6:8.3f}>" \
             .format(self.atom_id, self.coords[0], self.coords[1], self.coords[2],
@@ -27,6 +32,9 @@ class Atom:
 class Frame:
     def __init__(self, natoms):
         self.natoms = natoms
+        self.box = np.zeros((3, 2))
+        self.timestep = 0
+        self.atomformat = ""
         self.atoms = []
         for i in xrange(natoms):
             self.atoms.append(Atom())
