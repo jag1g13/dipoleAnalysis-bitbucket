@@ -4,117 +4,11 @@ import sys
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-from math import sqrt
 from optparse import OptionParser
-from math import atan2
 
 from FrameReader import FrameReader
+from Frame import Frame
 import planeAngles
-
-
-class Atom:
-    def __init__(self, atom_type=None, coords=None, dipole=None):
-        self.atom_id = atom_type
-
-        if coords is None:
-            self.coords = np.zeros(3)
-        else:
-            self.coords = coords
-
-        if dipole is None:
-            self.dipole = np.zeros(3)
-        else:
-            self.dipole = dipole
-
-    def __repr__(self):
-        return "<Atom {0} @ {1:8.3f}, {2:8.3f}, {3:8.3f} with dipole {4:8.3f}, {5:8.3f}, {6:8.3f}>"\
-               .format(self.atom_id, self.coords[0], self.coords[1], self.coords[2],
-                       self.dipole[0], self.dipole[1], self.dipole[2])
-
-
-class Frame:
-    def __init__(self, natoms):
-        self.natoms = natoms
-        self.atoms = []
-        for i in xrange(natoms):
-            self.atoms.append(Atom())
-
-    def __repr__(self):
-        return "<Frame containing {1} atoms>".format(natoms)
-
-    def angle_norm_bisect(self, num1, num2, num3):
-        """
-        return normal vector to plane formed by 3 atoms and their bisecting vector
-        """
-        vec1 = (self.atoms[num2].loc - self.atoms[num1].loc)
-        vec2 = (self.atoms[num3].loc - self.atoms[num2].loc)
-        vec1 = vec1 / np.linalg.norm(vec1)
-        vec2 = vec2 / np.linalg.norm(vec2)
-        normal = np.cross(vec1, vec2)
-        bisec = (vec1 + vec2) / 2.
-        return polar_coords(normal), polar_coords(bisec)
-
-    def show_atoms(self, start=0, end=-1):
-        """
-        print coordinates of the atoms numbered start to end
-        """
-        if end == -1:
-            end = len(self.atoms)
-        for i in xrange(start, end):
-            print(self.atoms[i])
-
-    def dipoleAngle(self, a, b):
-        """
-        Calculate angle of dipole on atom a with respect to bond vector a->b
-        :param a: Atom number
-        :param b: Atom number
-        :return: Angle of dipole with respect to bond
-        """
-        if not np.any(self.atoms[a].dipole):
-            return 0
-
-        return planeAngles.angleBetweenVectors(self.atoms[a].dipole,
-                                                   self.atoms[b].coords-self.atoms[a].coords)
-
-    def dipoleImproper(self, a, b, c):
-        """
-        Calculate improper of dipole on atom a with respect to bond vector b->c (or c->b?)
-        :param a: Atom number (with dipole)
-        :param b: Atom number
-        :param c: Atom number
-        :return: Improper dihedral angle
-        """
-        if not np.any(self.atoms[a].dipole):
-            return 0
-
-        crossProd1 = np.cross(self.atoms[a].dipole, (self.atoms[a].coords-self.atoms[b].coords))  # consistency with dihedral_dipole.cpp
-        mag1 = sqrt((crossProd1[0]*crossProd1[0])+(crossProd1[1]*crossProd1[1])+(crossProd1[2]*crossProd1[2]))
-        crossProd1 /= mag1
-        crossProd2 = np.cross((self.atoms[c].coords-self.atoms[b].coords), (self.atoms[a].coords-self.atoms[b].coords))
-        mag2 = sqrt((crossProd2[0]*crossProd2[0])+(crossProd2[1]*crossProd2[1])+(crossProd2[2]*crossProd2[2]))
-        crossProd2 /= mag2
-
-        middle = self.atoms[b].coords-self.atoms[a].coords
-        mag3 = sqrt(middle[0]*middle[0] + middle[1]*middle[1] + middle[2]*middle[2])
-        middle /= mag3
-
-        dot = np.dot(crossProd1, crossProd2)
-        det = (crossProd1[0]*crossProd2[1]*middle[2] - crossProd1[0]*crossProd2[2]*middle[1] - crossProd1[1]*crossProd2[0]*middle[2])
-        det += (crossProd1[1]*crossProd2[2]*middle[0] + crossProd1[2]*crossProd2[0]*middle[1] - crossProd1[2]*crossProd2[1]*middle[0])
-        torsion = (-1)*atan2(det, dot)
-        return torsion
-
-    def planeNormal(self, a, b, c):
-        """
-        Calculate normal to plane containing three atoms
-        :param a: Atom number
-        :param b: Atom number
-        :param c: Atom number
-        :return: Normal to plane containing all three atoms
-        """
-        return planeAngles.normalToPlane(self.atoms[a].coords,
-                                         self.atoms[b].coords,
-                                         self.atoms[c].coords)
 
 
 def polar_coords(xyz, axis1=np.array([0, 0, 0]), axis2=np.array([0, 0, 0]), mod=True):
@@ -196,7 +90,7 @@ def calcImpropersAll(frame, natoms=6):
     impropers = np.zeros(natoms)
     for i in xrange(natoms):
         if np.any(frame.atoms[i].dipole):
-            impropers[i] = frame.dipoleImproper(i, (i+1)%natoms, (i+5)%natoms)
+            impropers[i] = frame.dipoleImproper(i, (i+1) % natoms, (i+5) % natoms)
     return impropers
 
 
@@ -211,12 +105,12 @@ def calcAnglesPlane(frame, offset=2, natoms=6):
     angles = np.zeros(natoms)
     for i in xrange(natoms):
         if np.any(frame.atoms[i].dipole):
-            norm = frame.planeNormal(i, (i+offset)%natoms, (i+2*offset)%natoms)
+            norm = frame.planeNormal(i, (i+offset) % natoms, (i+2*offset) % natoms)
             angles[i] = planeAngles.angleBetweenVectors(frame.atoms[i].dipole, norm)
     return angles
 
 
-def analyse(filename, nframes=-1, natoms=-1):
+def main(filename, nframes=-1, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
     :param lammpstrj: Filename of LAMMPS trajectory
@@ -232,7 +126,8 @@ def analyse(filename, nframes=-1, natoms=-1):
 
     if nframes < 0:
         nframes = reader.total_frames
-    else: nframes = min(nframes, reader.total_frames)
+    else:
+        nframes = min(nframes, reader.total_frames)
 
     angle1 = np.zeros((nframes, 6))
     angle2 = np.zeros((nframes, 6))
@@ -274,13 +169,16 @@ def analyse(filename, nframes=-1, natoms=-1):
 
     return nframes
 
+
 def plotHistogram(array):
     plt.hist(array, 100, normed=1)
     plt.show()
 
+
 def reduceArrays(array):
     m_array = np.ma.masked_array(array, np.logical_or(np.isnan(array), np.equal(array, np.zeros_like(array))))
     return m_array.compressed()
+
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -302,6 +200,6 @@ if __name__ == "__main__":
         print("Must provide LAMMPS trajectory to run")
         sys.exit(1)
     t_start = time.clock()
-    nframes = analyse(options.lammpstrj, options.nframes)
+    nframes = main(options.lammpstrj, options.nframes)
     t_end = time.clock()
     print("-"*25 + "\nCalculated {0} frames in {1}s\n".format(nframes, (t_end - t_start)) + "="*25)
