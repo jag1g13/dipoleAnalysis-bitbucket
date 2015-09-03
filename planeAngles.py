@@ -3,6 +3,7 @@ import numpy as np
 from math import sqrt
 from math import acos
 from math import pi
+from math import atan2
 import sys
 
 
@@ -37,27 +38,27 @@ def normalToPlane(a, b, c):
 
 def angleBetweenVectors(a, b):
     """
-    Calculate the angle between two vectors using the following formula:
-
-                                           a . b
-                                cos(x) = ---------
-                                          |a| |b|
-
-    For now, this function only returns an unsigned angle...
+    Calculate the signed angle between two vectors.
     :param a: Vector
     :param b: Vector
-    :return: Angle between the two vectors (in degrees)
+    :return: Angle between the two vectors
     """
     a_mag = sqrt((a[0]*a[0])+(a[1]*a[1])+(a[2]*a[2]))
     b_mag = sqrt((b[0]*b[0])+(b[1]*b[1])+(b[2]*b[2]))
+    a = [(a[0]/a_mag), (a[1]/a_mag), (a[2]/a_mag)]
+    b = [(b[0]/b_mag), (b[1]/b_mag), (b[2]/b_mag)]
     # a_mag = np.sqrt(np.dot(a, a))
     # b_mag = np.sqrt(np.dot(b, b))
 
     dotProd = (a[0]*b[0]) + (a[1]*b[1]) + (a[2]*b[2])
+    crossProd = np.cross(a, b)
+    crossMag = sqrt(crossProd[0]*crossProd[0] + crossProd[1]*crossProd[1] + crossProd[2]*crossProd[2])
+
     # dotProd = np.dot(a, b)
 
-    cosX = dotProd / (a_mag*b_mag)
-    X_rad = acos(cosX)
+    # cosX = dotProd
+    # X_rad = acos(cosX)
+    X_rad = atan2(crossMag, dotProd)
     # X_deg = X_rad*180 / pi
 
     # return X_deg
