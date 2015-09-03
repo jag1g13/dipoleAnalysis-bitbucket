@@ -116,6 +116,35 @@ class Frame:
                                          self.atoms[b].coords,
                                          self.atoms[c].coords)
 
+    def centreOnMolecule(self, mol):
+        mol_com = np.zeros(3)
+        mol_mass = 0
+        mol_natoms = 0
+        for atom in self.atoms:
+            if atom.mol == mol:
+                mol_natoms += 1
+                mol_mass += atom.mass
+                mol_com += atom.mass * atom.coords
+        mol_com /= mol_mass
+
+        box = self.box[:, 1] - self.box[:, 0]
+        print(box)
+
+        min = np.zeros(3)
+        max = np.zeros(3)
+        for atom in self.atoms:
+            atom.coords -= mol_com
+            if atom.mol == mol:
+                min = np.minimum(min, atom.coords)
+                max = np.maximum(max, atom.coords)
+        diag = max - min
+        print(diag)
+
+        pbc = np.greater(diag, box/2)
+        print(pbc)
+        for atom in self.atoms:
+            if pbc[0]:
+                pass
 
 if __name__ == "__main__":
     print("This file is intended to be imported as a module, not run from the command line")

@@ -34,10 +34,20 @@ def main(filename, outname, nframes=-1, natoms=-1):
             # Read in frame from trajectory and process
             progressBar(i, nframes)
             reader.readFrame(i, frame)
+            frame.centreOnMolecule(1)
             writer.writeFrame(i, frame)
     return nframes
 
 def progressBar(num, total, length=50, char_done="+", char_remain="-"):
+    """
+    Print a progress bar
+    :param num: Current number of items processed
+    :param total: Total number of items to process
+    :param length: Length of progress bar - default 50
+    :param char_done: Character to use for left of bar
+    :param char_remain: Character to use for right of bar
+    :return: Nothing
+    """
     prog = length * (num+1) / total
     remain = length - prog
     print("\r" + char_done*prog + char_remain*remain, end="")

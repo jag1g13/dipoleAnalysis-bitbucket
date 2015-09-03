@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 import time
+import math
 import matplotlib.pyplot as plt
 from optparse import OptionParser
 
@@ -172,6 +173,7 @@ def main(filename, nframes=-1, natoms=-1):
 
 def plotHistogram(array):
     plt.hist(array, 100, normed=1)
+    plt.xlim(-math.pi, math.pi)
     plt.show()
 
 
