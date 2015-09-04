@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import sys
 import numpy as np
 import time
@@ -139,9 +141,9 @@ def main(filename, nframes=-1, natoms=-1):
     print(nframes)
     for i in xrange(nframes):
         # Read in frame from trajectory and process
-        if i % 1000 == 0:
-            print(i)
+        progressBar(i, nframes)
         reader.readFrame(i, frame)
+        frame.centreOnMolecule(1)
         angle1_tmp = calcAnglesAll(frame)
         angle2_tmp = calcAnglesAll(frame, 3)
         angle3_tmp = calcAnglesPlane(frame)
@@ -163,13 +165,31 @@ def main(filename, nframes=-1, natoms=-1):
         print(boltzmannInvert(angle2[:, j]))
         print(boltzmannInvert(angle3[:, j]))
         print(boltzmannInvert(improper[:, j]))
-        plotHistogram(reduceArrays(improper[:, j]))
+        # plotHistogram(reduceArrays(improper[:, j]))
+
+    np.savetxt("arr1.dat", angle1)
+    np.savetxt("arr2.dat", angle2)
+    np.savetxt("arr3.dat", angle3)
+    np.savetxt("imp1.dat", improper)
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
 
     return nframes
 
+def progressBar(num, total, length=50, char_done="+", char_remain="-"):
+    """
+    Print a progress bar
+    :param num: Current number of items processed
+    :param total: Total number of items to process
+    :param length: Length of progress bar - default 50
+    :param char_done: Character to use for left of bar
+    :param char_remain: Character to use for right of bar
+    :return: Nothing
+    """
+    prog = length * (num+1) / total
+    remain = length - prog
+    print("\r" + char_done*prog + char_remain*remain, end="")
 
 def plotHistogram(array):
     plt.hist(array, 100, normed=1)

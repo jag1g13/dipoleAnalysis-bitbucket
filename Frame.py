@@ -128,7 +128,7 @@ class Frame:
         mol_com /= mol_mass
 
         box = self.box[:, 1] - self.box[:, 0]
-        print(box)
+        # print(box)
 
         min = np.zeros(3)
         max = np.zeros(3)
@@ -138,11 +138,12 @@ class Frame:
                 min = np.minimum(min, atom.coords)
                 max = np.maximum(max, atom.coords)
         diag = max - min
-        print(diag)
+        # print(diag)
 
         pbc = np.greater(diag, box/2)
-        print(pbc)
-        cut = -0.25 * diag
+        # print(pbc)
+        # cut = -0.25 * box
+        cut = np.zeros(3)
         for atom in self.atoms:
             if pbc[0]:
                 if atom.coords[0] < cut[0]:
@@ -165,7 +166,7 @@ class Frame:
         mol_com /= mol_mass
 
         box = self.box[:, 1] - self.box[:, 0]
-        print(box)
+        # print(box)
 
         min = np.zeros(3)
         max = np.zeros(3)
