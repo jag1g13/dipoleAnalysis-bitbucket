@@ -76,14 +76,8 @@ def coneCenter(atom1, atom2, atom3, improp, tolerance):
     :param tolerance: Tolerance for the improper match
     :return: Vector at the cone center
     """
-    a_vec = np.zeros(3)
-    a_vec[0] = atom1.coords[0]-atom2.coords[0]
-    a_vec[1] = atom1.coords[1]-atom2.coords[1]
-    a_vec[2] = atom1.coords[2]-atom2.coords[2]
-    b_vec = np.zeros(3)
-    b_vec[0] = atom1.coords[0]-atom3.coords[0]
-    b_vec[1] = atom1.coords[1]-atom3.coords[1]
-    b_vec[2] = atom1.coords[2]-atom3.coords[2]
+    a_vec = atom1.coords - atom2.coords
+    b_vec = atom1.coords - atom3.coords
 
     n_vec = np.cross(a_vec, b_vec)
     n_mag = sqrt((n_vec[0]*n_vec[0]) + (n_vec[1]*n_vec[1]) + (n_vec[2]*n_vec[2]))
@@ -97,7 +91,7 @@ def coneCenter(atom1, atom2, atom3, improp, tolerance):
     u_mag = sqrt((u_vec[0]*u_vec[0]) + (u_vec[1]*u_vec[1]) + (u_vec[2]*u_vec[2]))
     u_vec /= u_mag
 
-    theta = (54*pi/180) # Start testing half of 109.5 deg
+    theta = (-125*pi/180) # Start testing half of 109.5 deg
     improp *= (pi/180)
     tolerance *= (pi/180)
 
@@ -122,13 +116,14 @@ def coneCenter(atom1, atom2, atom3, improp, tolerance):
     d_vec[2] = R_20*c_vec[0] + R_21*c_vec[1] + R_22*c_vec[2]
 
     if abs((float(improp) - improperVector(d_vec, atom1, atom2, atom3))) < float(tolerance): # Need to create or adapt a function for this improper
-        print(c_vec)
-        print(d_vec)
-        print(" ")
-        return d_vec  # Successful find of vector
+        # print(c_vec)
+        # print(d_vec)
+        # print(" ")
+        # return d_vec  # Successful find of vector
+        pass
     else:
-        print("\nIncorrect first guess. Difference of:")
-        print(str(abs(float(improp) - improperVector(d_vec, atom1, atom2, atom3))*(180/pi)) + " degrees")
+        # print("\nIncorrect first guess. Difference of:")
+        # print(str(abs(float(improp) - improperVector(d_vec, atom1, atom2, atom3))*(180/pi)) + " degrees")
 
         theta *= (-1)
 
@@ -148,15 +143,21 @@ def coneCenter(atom1, atom2, atom3, improp, tolerance):
         d_vec[2] = R_20*c_vec[0] + R_21*c_vec[1] + R_22*c_vec[2]
 
     if abs((float(improp) - improperVector(d_vec, atom1, atom2, atom3))) < float(tolerance):
-        print(c_vec)
-        print(d_vec)
-        print(" ")
-        return d_vec # Have now found the cone center
+        # print(c_vec)
+        # print(d_vec)
+        # print(" ")
+        # return d_vec # Have now found the cone center
+        pass
     else:
         print("Could not find suitable vector of center of dipole cone. Difference of:")
         print(str(abs(float(improp) - improperVector(d_vec, atom1, atom2, atom3))*(180/pi)) + " degrees")
         return [0, 0, 0]
         # sys.exit()
+
+    # return d_vec # Have now found the cone center
+    imp = improperVector(d_vec, atom1, atom2, atom3)
+    ang = angleBetweenVectors(d_vec, atom2.coords-atom1.coords)
+    return (ang, imp)
 
 
 def improperVector(vector, atom1, atom2, atom3):

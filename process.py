@@ -121,10 +121,14 @@ def calcConeCenters(frame, natoms=6):
     :return: Dipole center vectors
     """
     vectors = []
+    imp = np.zeros(natoms)
+    ang = np.zeros(natoms)
     for i in xrange(natoms):
         if np.any(frame.atoms[i].dipole):
-            vectors.append(planeAngles.coneCenter(frame.atoms[i], frame.atoms[(i+1) % natoms], frame.atoms[(i+5) % natoms], float(120), float(5)))
-    return vectors
+            tmp = planeAngles.coneCenter(frame.atoms[i], frame.atoms[(i+1) % natoms], frame.atoms[(i+5) % natoms], float(-60), float(5))
+            ang[i] = tmp[0]
+            imp[i] = tmp[1]
+    return (ang, imp)
 
 
 def main(filename, nframes=-1, natoms=-1):
@@ -150,13 +154,16 @@ def main(filename, nframes=-1, natoms=-1):
     angle2 = np.zeros((nframes, 6))
     improper = np.zeros((nframes, 6))
     angle3 = np.zeros((nframes, 6))
-    center = []
+    # center = []
+    center_ang = np.zeros((nframes, 6))
+    center_imp = np.zeros((nframes, 6))
 
     frame = Frame(natoms)
     print(nframes)
     for i in xrange(nframes):
         # Read in frame from trajectory and process
-        progressBar(i, nframes)
+        if i % 10 == 0:
+            progressBar(i, nframes)
         reader.readFrame(i, frame)
         frame.centreOnMolecule(1)
         angle1_tmp = calcAnglesAll(frame)
@@ -164,8 +171,10 @@ def main(filename, nframes=-1, natoms=-1):
         angle3_tmp = calcAnglesPlane(frame)
         improper_tmp = calcImpropersAll(frame)
 
-        center.append([])
-        center[i].append(calcConeCenters(frame))
+        center_ang_tmp, center_imp_tmp = calcConeCenters(frame)
+
+        # center.append([])
+        # center[i].append(calcConeCenters(frame))
         # frame.show_atoms(0,6)
 
         if not np.any(angle1_tmp):
@@ -176,6 +185,8 @@ def main(filename, nframes=-1, natoms=-1):
             angle2[i, j] = angle2_tmp[j]
             improper[i, j] = improper_tmp[j]
             angle3[i, j] = angle3_tmp[j]
+            center_ang[i, j] = center_ang_tmp[j]
+            center_imp[i, j] = center_imp_tmp[j]
 
     for j in xrange(6):
         print("-"*5)
@@ -189,11 +200,13 @@ def main(filename, nframes=-1, natoms=-1):
     np.savetxt("arr2.dat", angle2)
     np.savetxt("arr3.dat", angle3)
     np.savetxt("imp1.dat", improper)
+    np.savetxt("center_imp.dat", center_imp)
+    np.savetxt("center_ang.dat", center_ang)
 
-    for i in range(nframes):
-        print("Frame " + str(i+1) + ":")
-        for j in range(5):
-            print("    Bead " + str(j+1) + ":" + str(center[i][0][j]))
+    # for i in range(nframes):
+    #     print("Frame " + str(i+1) + ":")
+    #     for j in range(5):
+    #         print("    Bead " + str(j+1) + ":" + str(center[i][0][j]))
 
     # analyseAngles(angle1)
     # analyseAngles(angle2)
