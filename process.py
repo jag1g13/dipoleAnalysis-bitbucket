@@ -113,6 +113,20 @@ def calcAnglesPlane(frame, offset=2, natoms=6):
     return angles
 
 
+def calcConeCenters(frame, natoms=6):
+    """
+    Finds the centers of the dipole rotation cones for each bead, for each frame.
+    :param frame: Frame instance
+    :param natoms: Number of atoms to use
+    :return: Dipole center vectors
+    """
+    vectors = []
+    for i in xrange(natoms):
+        if np.any(frame.atoms[i].dipole):
+            vectors.append(planeAngles.coneCenter(frame.atoms[i], frame.atoms[(i+1) % natoms], frame.atoms[(i+5) % natoms], float(120), float(5)))
+    return vectors
+
+
 def main(filename, nframes=-1, natoms=-1):
     """
     Perform analysis of dipoles in LAMMPS trajectory
@@ -136,6 +150,7 @@ def main(filename, nframes=-1, natoms=-1):
     angle2 = np.zeros((nframes, 6))
     improper = np.zeros((nframes, 6))
     angle3 = np.zeros((nframes, 6))
+    center = []
 
     frame = Frame(natoms)
     print(nframes)
@@ -148,6 +163,9 @@ def main(filename, nframes=-1, natoms=-1):
         angle2_tmp = calcAnglesAll(frame, 3)
         angle3_tmp = calcAnglesPlane(frame)
         improper_tmp = calcImpropersAll(frame)
+
+        center.append([])
+        center[i].append(calcConeCenters(frame))
         # frame.show_atoms(0,6)
 
         if not np.any(angle1_tmp):
@@ -172,6 +190,11 @@ def main(filename, nframes=-1, natoms=-1):
     np.savetxt("arr3.dat", angle3)
     np.savetxt("imp1.dat", improper)
 
+    for i in range(nframes):
+        print("Frame " + str(i+1) + ":")
+        for j in range(5):
+            print("    Bead " + str(j+1) + ":" + str(center[i][0][j]))
+
     # analyseAngles(angle1)
     # analyseAngles(angle2)
 
@@ -192,7 +215,7 @@ def progressBar(num, total, length=50, char_done="+", char_remain="-"):
     print("\r" + char_done*prog + char_remain*remain, end="")
 
 def plotHistogram(array):
-    plt.hist(array, 100, normed=1)
+    plt.hist(array, 100, normed=1, color='blue')
     plt.xlim(-math.pi, math.pi)
     plt.show()
 
